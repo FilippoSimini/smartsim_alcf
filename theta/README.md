@@ -37,30 +37,30 @@ To test the Smartredis installation type
 PREFIX="$1"
 ENVNAME=ssim
 
-# set the environment
+echo set the environment
 module swap PrgEnv-intel PrgEnv-gnu
 export CRAYPE_LINK_TYPE=dynamic
 module unload craype-mic-knl
 module load miniconda-3/2021-07-28
 
-# create the conda environment
-conda create -c conda-forge --prefix $PREFIX/$ENVNAME python=3.8 pytorch=1.7.1 pip
+echo create the conda environment
+conda create -y -c conda-forge --prefix $PREFIX/$ENVNAME python=3.8 pytorch=1.7.1 pip
 conda activate $PREFIX/$ENVNAME
-conda install -c conda-forge git-lfs
+conda install -y -c alcf-theta mpi4py
+conda install -y -c conda-forge git-lfs
 git lfs install
 
-# install smartsim
+echo install smartsim
 git clone https://github.com/CrayLabs/SmartSim.git --depth=1 --branch v0.3.2 smartsim-0.3.2
 cd smartsim-0.3.2
 pip install -e .[dev,ml]
 smart -v --device cpu
-#TEST: python -c 'import smartsim' and python -c 'from smartsim import Experiment'
 
-# install smartredis
+echo install smartredis
+cd ..
 git clone https://github.com/CrayLabs/SmartRedis.git --depth=1 --branch v0.2.0 smartredis-0.2.0
 cd smartredis-0.2.0
 pip install -e .[dev]
-#TEST: python -c 'from smartredis import Client'
 
 export CC=/opt/gcc/9.3.0/bin/gcc
 export CXX=/opt/gcc/9.3.0/bin/g++
@@ -174,10 +174,15 @@ as follows
 ```bash
 #!/bin/bash
 
+# change `ChargeAccount` with the charge account for your project
+ChargeAccount=youraccount
+queue=debug-cache-quad 
+runtime=00:30:00
+
 # args:
 dbnodes=4
 batch_size=4
-db_tensors_per_ml_rank=2
+db_tensors_batch_size=2
 
 ppn=64
 nodes=8
@@ -185,17 +190,13 @@ allprocs=$(($nodes * $ppn))
 simnodes=2
 mlnodes=$(($nodes - $dbnodes - $simnodes))
 
-ChargeAccount=youraccount
-runtime=00:30:00
-queue=debug-cache-quad 
-
 echo number of nodes $nodes 
 echo time in minutes $runtime
 echo number of processes $allprocs
 echo ppn  N $ppn
 echo queue $queue
  
-qsub -q $queue -n $nodes -t $runtime -A $ChargeAccount run.sh $ppn $nodes $allprocs $dbnodes $simnodes $mlnodes $batch_size $db_tensors_per_ml_rank
+qsub -q $queue -n $nodes -t $runtime -A $ChargeAccount run.sh $ppn $nodes $allprocs $dbnodes $simnodes $mlnodes $batch_size $db_tensors_batch_size
 ```
 
 
@@ -204,6 +205,7 @@ qsub -q $queue -n $nodes -t $runtime -A $ChargeAccount run.sh $ppn $nodes $allpr
 ```bash
 #!/bin/bash
 
+# change `CONDA_ENV_PREFIX` with the path to your conda environment
 CONDA_ENV_PREFIX=/path/to/env/location/ssim
 DRIVER=driver.py
 
@@ -217,14 +219,14 @@ echo dbnodes $4
 echo simnodes $5
 echo mlnodes $6
 batch_size=$7
-db_tensors_per_ml_rank=$8
+db_tensors_batch_size=$8
 echo batch_size $batch_size
-echo db_tensors_per_ml_rank $db_tensors_per_ml_rank
+echo db_tensors_batch_size $db_tensors_batch_size
 
 module load miniconda-3/2021-07-28
 conda activate $CONDA_ENV_PREFIX
 
-python $DRIVER $1 $2 $3 $4 $5 $6 $batch_size $db_tensors_per_ml_rank
+python $DRIVER $1 $2 $3 $4 $5 $6 $batch_size $db_tensors_batch_size
 ```
 
 

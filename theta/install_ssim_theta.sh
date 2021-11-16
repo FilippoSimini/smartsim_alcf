@@ -4,14 +4,19 @@ PREFIX="$1"
 ENVNAME=ssim
 
 echo set the environment
-module swap PrgEnv-intel PrgEnv-gnu
-export CRAYPE_LINK_TYPE=dynamic
-module unload craype-mic-knl
+module purge
+module load PrgEnv-gnu
+module load cray-mpich
+module unload atp perftools-base cray-libsci
+#module unload craype-mic-knl
 module load miniconda-3/2021-07-28
+export CRAYPE_LINK_TYPE=dynamic
+
 
 echo create the conda environment
-conda create -y -c conda-forge --prefix $PREFIX/$ENVNAME python=3.8 pytorch=1.7.1 pip
+conda create -y -c conda-forge --prefix $PREFIX/$ENVNAME python=3.8 pip
 conda activate $PREFIX/$ENVNAME
+conda install -y -c conda-forge matplotlib
 conda install -y -c alcf-theta mpi4py
 conda install -y -c conda-forge git-lfs
 git lfs install
@@ -21,9 +26,9 @@ git clone https://github.com/CrayLabs/SmartSim.git --depth=1 --branch v0.3.2 sma
 cd smartsim-0.3.2
 pip install -e .[dev,ml]
 smart -v --device cpu
+cd ..
 
 echo install smartredis
-cd ..
 git clone https://github.com/CrayLabs/SmartRedis.git --depth=1 --branch v0.2.0 smartredis-0.2.0
 cd smartredis-0.2.0
 pip install -e .[dev]
